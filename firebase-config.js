@@ -1,9 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp } from "firebase/app";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDlM0PNLlrUejkgW1774fjZDBaDJZT4lDM",
+  apiKey: "AIzaSyDlM0PNLlrUejkgW1774fjZDBaDJZT4lDM", 
   authDomain: "qr-scan-f3702.firebaseapp.com",
   projectId: "qr-scan-f3702",
   storageBucket: "qr-scan-f3702.firebasestorage.app",
