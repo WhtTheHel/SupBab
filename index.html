@@ -3,96 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - QR System</title>
+    <title>Login QR System</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
-        <h2 class="text-2xl font-bold mb-6">Login QR System</h2>
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+        <h2 id="title" class="text-2xl font-bold text-center mb-2">Selamat Datang</h2>
+        <p id="info" class="text-center text-sm text-gray-500 mb-6">Silahkan Login</p>
         
-        <div class="space-y-4 text-left">
+        <div class="space-y-4">
             <input type="email" id="email" placeholder="Email" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
             <input type="password" id="password" placeholder="Password" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
             
-            <button id="mainBtn" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">Masuk / Daftar</button>
+            <!-- Tombol ini harusnya bisa dipencet -->
+            <button id="mainBtn" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold active:bg-blue-800">
+                Masuk / Daftar
+            </button>
 
             <div class="relative flex py-2 items-center"><div class="flex-grow border-t"></div><span class="mx-4 text-gray-400 text-xs">Atau</span><div class="flex-grow border-t"></div></div>
 
-            <button id="googleBtn" class="w-full bg-white border p-3 rounded-xl font-semibold flex items-center justify-center hover:bg-gray-50">
+            <button id="googleBtn" class="w-full bg-white border p-3 rounded-xl font-semibold flex items-center justify-center active:bg-gray-100">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5 mr-3">
                 Masuk dengan Google
             </button>
         </div>
-        <p id="debugStatus" class="mt-4 text-xs text-red-500 font-mono"></p>
     </div>
 
+    <!-- SCRIPT LANGSUNG DISINI -->
     <script type="module">
-        // GUNAKAN TRY-CATCH UNTUK MELACAK ERROR SAAT LOAD
-        try {
-            const status = document.getElementById('debugStatus');
-            status.innerText = "Sistem sedang memuat...";
+        // 1. IMPORT FIREBASE
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-            import { auth, db } from './firebase-config.js';
-            import { 
-                signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-                GoogleAuthProvider, signInWithRedirect, getRedirectResult 
-            } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-            import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // 2. KONFIGURASI (GANTI DENGAN DATA FIREBASE ANDA)
+        const firebaseConfig = {
+            apiKey: "MASUKKAN_API_KEY_ANDA_DISINI",
+            authDomain: "PROYEK_ANDA.firebaseapp.com",
+            projectId: "PROYEK_ANDA",
+            storageBucket: "PROYEK_ANDA.appspot.com",
+            messagingSenderId: "NOMOR_ID_ANDA",
+            appId: "APP_ID_ANDA"
+        };
 
-            status.innerText = "Sistem Siap.";
+        // 3. INISIALISASI
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-            // CEK HASIL LOGIN GOOGLE (Khusus HP)
-            getRedirectResult(auth).then((result) => {
-                if (result) handleUserRedirect(result.user);
-            }).catch(e => alert("Gagal Redirect: " + e.message));
+        const mainBtn = document.getElementById('mainBtn');
+        const googleBtn = document.getElementById('googleBtn');
 
-            async function handleUserRedirect(user) {
-                try {
-                    const snap = await getDoc(doc(db, "users", user.uid));
-                    if (snap.exists()) {
-                        window.location.href = snap.data().role === "admin" ? "admin-list.html" : "dashboard.html";
-                    } else {
-                        await setDoc(doc(db, "users", user.uid), {
-                            email: user.email, role: "user", status: "3", tanggal: new Date().toLocaleString()
-                        });
-                        window.location.href = "dashboard.html";
-                    }
-                } catch (e) { alert("Error Database: " + e.message); }
-            }
-
-            // TOMBOL GOOGLE (Redirect adalah cara terbaik untuk HP)
-            document.getElementById('googleBtn').addEventListener('click', () => {
-                const provider = new GoogleAuthProvider();
-                signInWithRedirect(auth, provider);
-            });
-
-            // TOMBOL LOGIN / DAFTAR
-            document.getElementById('mainBtn').addEventListener('click', async () => {
-                const email = document.getElementById('email').value;
-                const pass = document.getElementById('password').value;
-                if(!email || !pass) return alert("Isi data!");
-
-                try {
-                    // Coba login dulu, kalau gagal otomatis daftar
-                    signInWithEmailAndPassword(auth, email, pass)
-                        .then(res => handleUserRedirect(res.user))
-                        .catch(async (err) => {
-                            if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                                const res = await createUserWithEmailAndPassword(auth, email, pass);
-                                await setDoc(doc(db, "users", res.user.uid), {
-                                    email: email, role: "user", status: "3", tanggal: new Date().toLocaleString()
-                                });
-                                alert("Akun baru dibuat!");
-                                handleUserRedirect(res.user);
-                            } else { alert(err.message); }
-                        });
-                } catch (e) { alert(e.message); }
-            });
-
-        } catch (error) {
-            document.getElementById('debugStatus').innerText = "Gagal Load JS: " + error.message;
-            alert("Terjadi kesalahan sistem: " + error.message);
+        // FUNGSI REDIRECT
+        async function cekData(user) {
+            try {
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.exists()) {
+                    window.location.href = snap.data().role === "admin" ? "admin-list.html" : "dashboard.html";
+                } else {
+                    await setDoc(doc(db, "users", user.uid), {
+                        email: user.email, role: "user", status: "3", tanggal: new Date().toLocaleString()
+                    });
+                    window.location.href = "dashboard.html";
+                }
+            } catch (e) { alert("Error DB: " + e.message); }
         }
+
+        // TANGANI GOOGLE REDIRECT
+        getRedirectResult(auth).then((res) => { if(res) cekData(res.user); });
+
+        // TOMBOL GOOGLE
+        googleBtn.addEventListener('click', () => {
+            const provider = new GoogleAuthProvider();
+            signInWithRedirect(auth, provider);
+        });
+
+        // TOMBOL MASUK/DAFTAR
+        mainBtn.addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            if(!email || !pass) return alert("Isi email dan password!");
+
+            try {
+                // Coba Login
+                const login = await signInWithEmailAndPassword(auth, email, pass);
+                cekData(login.user);
+            } catch (err) {
+                // Jika user tidak ada, otomatis Daftarkan
+                if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                    try {
+                        const daftar = await createUserWithEmailAndPassword(auth, email, pass);
+                        await setDoc(doc(db, "users", daftar.user.uid), {
+                            email: email, role: "user", status: "3", tanggal: new Date().toLocaleString()
+                        });
+                        alert("Akun berhasil dibuat!");
+                        cekData(daftar.user);
+                    } catch (e2) { alert("Daftar Gagal: " + e2.message); }
+                } else { alert("Login Gagal: " + err.message); }
+            }
+        });
     </script>
 </body>
 </html>
