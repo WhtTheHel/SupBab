@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - List User</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Manajemen Pembayaran</h1>
+            <a href="admin-scan.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">Buka Scanner</a>
+        </div>
+
+        <div id="userList" class="grid gap-4">
+            <!-- Data user muncul di sini -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { collection, onSnapshot, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Proteksi Admin
+        auth.onAuthStateChanged(async user => {
+            if(user) {
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if(!snap.exists() || snap.data().role !== 'admin') window.location.href = "dashboard.html";
+            } else { window.location.href = "index.html"; }
+        });
+
+        onSnapshot(collection(db, "users"), (snapshot) => {
+            const list = document.getElementById('userList');
+            list.innerHTML = "";
+            snapshot.forEach(uDoc => {
+                const u = uDoc.data();
+                if(u.role === 'admin') return; // Sembunyikan admin dari list
+
+                const div = document.createElement('div');
+                div.className = "bg-white p-4 rounded-xl shadow flex justify-between items-center";
+                div.innerHTML = `
+                    <div>
+                        <p class="font-bold text-lg">${u.nama || 'No Name'}</p>
+                        <p class="text-gray-500 text-sm">NIK: ${u.nik || '-'}</p>
+                        <p class="text-xs text-blue-400">Update: ${u.tanggal}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="upStat('${uDoc.id}', '1')" class="bg-green-500 text-white px-3 py-1 rounded text-xs">Hijau</button>
+                        <button onclick="upStat('${uDoc.id}', '2')" class="bg-yellow-500 text-white px-3 py-1 rounded text-xs">Kuning</button>
+                        <button onclick="upStat('${uDoc.id}', '3')" class="bg-red-500 text-white px-3 py-1 rounded text-xs">Merah</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        });
+
+        window.upStat = async (uid, stat) => {
+            await updateDoc(doc(db, "users", uid), {
+                status: stat,
+                tanggal: new Date().toLocaleString('id-ID')
+            });
+        };
+    </script>
+</body>
+</html>
