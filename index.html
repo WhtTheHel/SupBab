@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - QR System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h2 id="formTitle" class="text-3xl font-bold mb-6 text-center text-blue-600">Login</h2>
+        <div class="space-y-4">
+            <input type="email" id="email" placeholder="Email" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
+            <input type="password" id="password" placeholder="Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
+            <button id="mainBtn" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition">Masuk</button>
+            <p class="text-center text-sm">
+                <span id="toggleText">Belum punya akun?</span> 
+                <a href="#" id="toggleLink" class="text-blue-600 font-bold">Daftar</a>
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const emailInput = document.getElementById('email');
+        const passInput = document.getElementById('password');
+        const mainBtn = document.getElementById('mainBtn');
+        const formTitle = document.getElementById('formTitle');
+        const toggleLink = document.getElementById('toggleLink');
+        
+        let isLogin = true;
+
+        toggleLink.addEventListener('click', () => {
+            isLogin = !isLogin;
+            formTitle.innerText = isLogin ? "Login" : "Daftar Akun";
+            mainBtn.innerText = isLogin ? "Masuk" : "Daftar";
+            document.getElementById('toggleText').innerText = isLogin ? "Belum punya akun?" : "Sudah punya akun?";
+            toggleLink.innerText = isLogin ? "Daftar" : "Login";
+        });
+
+        mainBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const pass = passInput.value;
+
+            try {
+                if (isLogin) {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                    const user = userCredential.user;
+                    
+                    // Cek Role di Firestore
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists() && userDoc.data().role === "admin") {
+                        window.location.href = "admin-list.html";
+                    } else {
+                        window.location.href = "dashboard.html";
+                    }
+                } else {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                    const user = userCredential.user;
+                    // Simpan user baru dengan role 'user'
+                    await setDoc(doc(db, "users", user.uid), {
+                        email: email,
+                        role: "user",
+                        status: "3", // Default Belum Bayar
+                        tanggal: "-"
+                    });
+                    alert("Pendaftaran Berhasil! Silahkan Login.");
+                    location.reload();
+                }
+            } catch (err) { alert("Error: " + err.message); }
+        });
+    </script>
+</body>
+</html>
