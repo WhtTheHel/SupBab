@@ -3,74 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - QR System</title>
+    <title>Login & Daftar - QR System</title>
+    <!-- Tailwind CSS untuk Desain -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-        <h2 id="formTitle" class="text-3xl font-bold mb-6 text-center text-blue-600">Login</h2>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h2 id="formTitle" class="text-3xl font-bold text-slate-800">Selamat Datang</h2>
+            <p id="formSubTitle" class="text-slate-500 mt-2">Silahkan masuk ke akun Anda</p>
+        </div>
+        
         <div class="space-y-4">
-            <input type="email" id="email" placeholder="Email" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
-            <input type="password" id="password" placeholder="Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
-            <button id="mainBtn" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition">Masuk</button>
-            <p class="text-center text-sm">
+            <!-- Input Email -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                <input type="email" id="email" placeholder="nama@email.com" 
+                    class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+            </div>
+
+            <!-- Input Password -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Password</label>
+                <input type="password" id="password" placeholder="••••••••" 
+                    class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+            </div>
+            
+            <!-- Tombol Utama (Login/Daftar) -->
+            <button id="mainBtn" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200 mt-2">
+                Masuk Sekarang
+            </button>
+
+            <!-- Divider (Atau) -->
+            <div class="relative flex py-3 items-center">
+                <div class="flex-grow border-t border-slate-200"></div>
+                <span class="flex-shrink mx-4 text-slate-400 text-xs font-bold uppercase tracking-widest">Atau</span>
+                <div class="flex-grow border-t border-slate-200"></div>
+            </div>
+
+            <!-- Tombol Google -->
+            <button id="googleBtn" class="w-full bg-white border border-slate-300 text-slate-700 p-3 rounded-xl font-semibold flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5 mr-3">
+                Masuk dengan Google
+            </button>
+
+            <!-- Toggle Login / Daftar -->
+            <p class="text-center text-sm mt-6 text-slate-600">
                 <span id="toggleText">Belum punya akun?</span> 
-                <a href="#" id="toggleLink" class="text-blue-600 font-bold">Daftar</a>
+                <a href="#" id="toggleLink" class="text-blue-600 font-bold hover:underline">Daftar Akun</a>
             </p>
         </div>
     </div>
 
+    <!-- Script Logic -->
     <script type="module">
+        // Import konfigurasi dari file terpisah
         import { auth, db } from './firebase-config.js';
-        import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            GoogleAuthProvider, 
+            signInWithPopup 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const emailInput = document.getElementById('email');
         const passInput = document.getElementById('password');
         const mainBtn = document.getElementById('mainBtn');
+        const googleBtn = document.getElementById('googleBtn');
         const formTitle = document.getElementById('formTitle');
+        const formSubTitle = document.getElementById('formSubTitle');
         const toggleLink = document.getElementById('toggleLink');
+        const toggleText = document.getElementById('toggleText');
         
         let isLogin = true;
 
-        toggleLink.addEventListener('click', () => {
+        // FUNGSI: Toggle Tampilan Login/Daftar
+        toggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
             isLogin = !isLogin;
-            formTitle.innerText = isLogin ? "Login" : "Daftar Akun";
-            mainBtn.innerText = isLogin ? "Masuk" : "Daftar";
-            document.getElementById('toggleText').innerText = isLogin ? "Belum punya akun?" : "Sudah punya akun?";
-            toggleLink.innerText = isLogin ? "Daftar" : "Login";
+            
+            formTitle.innerText = isLogin ? "Selamat Datang" : "Daftar Akun";
+            formSubTitle.innerText = isLogin ? "Silahkan masuk ke akun Anda" : "Lengkapi data untuk mendaftar";
+            mainBtn.innerText = isLogin ? "Masuk Sekarang" : "Buat Akun";
+            toggleText.innerText = isLogin ? "Belum punya akun?" : "Sudah punya akun?";
+            toggleLink.innerText = isLogin ? "Daftar Akun" : "Login di sini";
         });
 
-        mainBtn.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const pass = passInput.value;
-
+        // FUNGSI: Arahkan User Berdasarkan Role di Database
+        async function handleUserRedirect(user) {
             try {
-                if (isLogin) {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-                    const user = userCredential.user;
-                    
-                    // Cek Role di Firestore
-                    const userDoc = await getDoc(doc(db, "users", user.uid));
-                    if (userDoc.exists() && userDoc.data().role === "admin") {
+                const userDocRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userDocRef);
+
+                if (userSnap.exists()) {
+                    // Jika data user sudah ada, cek rolenya
+                    const userData = userSnap.data();
+                    if (userData.role === "admin") {
                         window.location.href = "admin-list.html";
                     } else {
                         window.location.href = "dashboard.html";
                     }
                 } else {
+                    // Jika user baru (biasanya dari Google), buatkan data awal di Firestore
+                    const initialData = {
+                        email: user.email,
+                        role: "user",
+                        status: "3", // Default: Belum Bayar (Merah)
+                        tanggal: new Date().toLocaleString('id-ID'),
+                        nama: user.displayName || ""
+                    };
+                    await setDoc(userDocRef, initialData);
+                    window.location.href = "dashboard.html";
+                }
+            } catch (error) {
+                console.error("Gagal mengarahkan user:", error);
+                alert("Terjadi kesalahan saat mengecek data di database.");
+            }
+        }
+
+        // EVENT: Tombol Utama (Email & Password)
+        mainBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const pass = passInput.value;
+
+            if(!email || !pass) return alert("Harap isi email dan password!");
+
+            try {
+                if (isLogin) {
+                    // Proses Login
+                    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                    handleUserRedirect(userCredential.user);
+                } else {
+                    // Proses Daftar Akun Baru
                     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
                     const user = userCredential.user;
-                    // Simpan user baru dengan role 'user'
+
+                    // Simpan data pendaftar ke Firestore
                     await setDoc(doc(db, "users", user.uid), {
                         email: email,
                         role: "user",
-                        status: "3", // Default Belum Bayar
-                        tanggal: "-"
+                        status: "3",
+                        tanggal: new Date().toLocaleString('id-ID'),
+                        nama: ""
                     });
+
                     alert("Pendaftaran Berhasil! Silahkan Login.");
                     location.reload();
                 }
-            } catch (err) { alert("Error: " + err.message); }
+            } catch (err) {
+                console.error(err);
+                let message = "Terjadi kesalahan";
+                if(err.code === 'auth/user-not-found') message = "User tidak ditemukan!";
+                if(err.code === 'auth/wrong-password') message = "Password salah!";
+                if(err.code === 'auth/email-already-in-use') message = "Email sudah terdaftar!";
+                alert(message);
+            }
+        });
+
+        // EVENT: Login dengan Google
+        googleBtn.addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                const result = await signInWithPopup(auth, provider);
+                handleUserRedirect(result.user);
+            } catch (err) {
+                console.error(err);
+                if(err.code !== 'auth/cancelled-popup-request') {
+                    alert("Gagal login dengan Google: " + err.message);
+                }
+            }
         });
     </script>
 </body>
