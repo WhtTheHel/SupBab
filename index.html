@@ -3,141 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR System - Login</title>
+    <title>Login - QR System</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
-
-    <div id="app" class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200 text-center">
-        <h2 id="formTitle" class="text-2xl font-bold text-slate-800 mb-2">Selamat Datang</h2>
-        <p id="statusMsg" class="text-sm text-slate-500 mb-6">Silahkan login untuk melanjutkan</p>
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+        <h2 class="text-2xl font-bold mb-6">Login QR System</h2>
         
         <div class="space-y-4 text-left">
-            <input type="email" id="email" placeholder="Email" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-            <input type="password" id="password" placeholder="Password" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="email" id="email" placeholder="Email" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="password" placeholder="Password" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
             
-            <button id="mainBtn" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition">Masuk</button>
+            <button id="mainBtn" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">Masuk / Daftar</button>
 
-            <div class="relative flex py-2 items-center">
-                <div class="flex-grow border-t border-slate-200"></div>
-                <span class="flex-shrink mx-4 text-slate-400 text-xs font-bold uppercase">Atau</span>
-                <div class="flex-grow border-t border-slate-200"></div>
-            </div>
+            <div class="relative flex py-2 items-center"><div class="flex-grow border-t"></div><span class="mx-4 text-gray-400 text-xs">Atau</span><div class="flex-grow border-t"></div></div>
 
-            <!-- Tombol Google -->
-            <button id="googleBtn" class="w-full bg-white border border-slate-300 text-slate-700 p-3 rounded-xl font-semibold flex items-center justify-center hover:bg-slate-50 shadow-sm">
+            <button id="googleBtn" class="w-full bg-white border p-3 rounded-xl font-semibold flex items-center justify-center hover:bg-gray-50">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5 mr-3">
                 Masuk dengan Google
             </button>
-
-            <p class="text-center text-sm mt-6">
-                <span id="toggleText">Belum punya akun?</span> 
-                <a href="#" id="toggleLink" class="text-blue-600 font-bold">Daftar</a>
-            </p>
         </div>
+        <p id="debugStatus" class="mt-4 text-xs text-red-500 font-mono"></p>
     </div>
 
     <script type="module">
-        import { auth, db } from './firebase-config.js';
-        import { 
-            signInWithEmailAndPassword, 
-            createUserWithEmailAndPassword, 
-            GoogleAuthProvider, 
-            signInWithRedirect, 
-            getRedirectResult 
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // GUNAKAN TRY-CATCH UNTUK MELACAK ERROR SAAT LOAD
+        try {
+            const status = document.getElementById('debugStatus');
+            status.innerText = "Sistem sedang memuat...";
 
-        const emailInput = document.getElementById('email');
-        const passInput = document.getElementById('password');
-        const mainBtn = document.getElementById('mainBtn');
-        const googleBtn = document.getElementById('googleBtn');
-        const toggleLink = document.getElementById('toggleLink');
-        const statusMsg = document.getElementById('statusMsg');
-        
-        let isLogin = true;
+            import { auth, db } from './firebase-config.js';
+            import { 
+                signInWithEmailAndPassword, createUserWithEmailAndPassword, 
+                GoogleAuthProvider, signInWithRedirect, getRedirectResult 
+            } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+            import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 1. TANGANI HASIL REDIRECT GOOGLE (PENTING UNTUK HP)
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result) {
-                    statusMsg.innerText = "Berhasil Login Google. Mengecek data...";
-                    handleUserRedirect(result.user);
-                }
-            })
-            .catch((error) => {
-                console.error("Error Google Redirect:", error);
-                if (error.code !== 'auth/redirect-cancelled-by-user') {
-                    alert("Gagal Google Login: " + error.message);
-                }
-            });
+            status.innerText = "Sistem Siap.";
 
-        // 2. FUNGSI CEK ROLE & REDIRECT
-        async function handleUserRedirect(user) {
-            try {
-                const userDocRef = doc(db, "users", user.uid);
-                const userSnap = await getDoc(userDocRef);
+            // CEK HASIL LOGIN GOOGLE (Khusus HP)
+            getRedirectResult(auth).then((result) => {
+                if (result) handleUserRedirect(result.user);
+            }).catch(e => alert("Gagal Redirect: " + e.message));
 
-                if (userSnap.exists()) {
-                    const userData = userSnap.data();
-                    if (userData.role === "admin") {
-                        window.location.href = "admin-list.html";
+            async function handleUserRedirect(user) {
+                try {
+                    const snap = await getDoc(doc(db, "users", user.uid));
+                    if (snap.exists()) {
+                        window.location.href = snap.data().role === "admin" ? "admin-list.html" : "dashboard.html";
                     } else {
+                        await setDoc(doc(db, "users", user.uid), {
+                            email: user.email, role: "user", status: "3", tanggal: new Date().toLocaleString()
+                        });
                         window.location.href = "dashboard.html";
                     }
-                } else {
-                    // Jika user baru benar-benar belum ada di database
-                    const dataBaru = {
-                        email: user.email,
-                        role: "user",
-                        status: "3",
-                        tanggal: new Date().toLocaleString('id-ID'),
-                        nama: user.displayName || ""
-                    };
-                    await setDoc(userDocRef, dataBaru);
-                    window.location.href = "dashboard.html";
-                }
-            } catch (err) {
-                console.error("Firestore Error:", err);
-                alert("Database Error: " + err.message + ". Pastikan Firestore Rules sudah di-set ke 'allow read, write: if true;'");
+                } catch (e) { alert("Error Database: " + e.message); }
             }
+
+            // TOMBOL GOOGLE (Redirect adalah cara terbaik untuk HP)
+            document.getElementById('googleBtn').addEventListener('click', () => {
+                const provider = new GoogleAuthProvider();
+                signInWithRedirect(auth, provider);
+            });
+
+            // TOMBOL LOGIN / DAFTAR
+            document.getElementById('mainBtn').addEventListener('click', async () => {
+                const email = document.getElementById('email').value;
+                const pass = document.getElementById('password').value;
+                if(!email || !pass) return alert("Isi data!");
+
+                try {
+                    // Coba login dulu, kalau gagal otomatis daftar
+                    signInWithEmailAndPassword(auth, email, pass)
+                        .then(res => handleUserRedirect(res.user))
+                        .catch(async (err) => {
+                            if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                                const res = await createUserWithEmailAndPassword(auth, email, pass);
+                                await setDoc(doc(db, "users", res.user.uid), {
+                                    email: email, role: "user", status: "3", tanggal: new Date().toLocaleString()
+                                });
+                                alert("Akun baru dibuat!");
+                                handleUserRedirect(res.user);
+                            } else { alert(err.message); }
+                        });
+                } catch (e) { alert(e.message); }
+            });
+
+        } catch (error) {
+            document.getElementById('debugStatus').innerText = "Gagal Load JS: " + error.message;
+            alert("Terjadi kesalahan sistem: " + error.message);
         }
-
-        // 3. LOGIN GOOGLE (METODE REDIRECT AGAR STABIL DI HP)
-        googleBtn.addEventListener('click', () => {
-            const provider = new GoogleAuthProvider();
-            signInWithRedirect(auth, provider);
-        });
-
-        // 4. LOGIN / DAFTAR EMAIL PASSWORD
-        mainBtn.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const pass = passInput.value;
-            if(!email || !pass) return alert("Isi email & password!");
-
-            try {
-                if (isLogin) {
-                    const res = await signInWithEmailAndPassword(auth, email, pass);
-                    handleUserRedirect(res.user);
-                } else {
-                    const res = await createUserWithEmailAndPassword(auth, email, pass);
-                    await setDoc(doc(db, "users", res.user.uid), {
-                        email: email, role: "user", status: "3", tanggal: new Date().toLocaleString('id-ID'), nama: ""
-                    });
-                    alert("Berhasil Daftar!");
-                    location.reload();
-                }
-            } catch (err) { alert(err.message); }
-        });
-
-        // TOGGLE LOGIN/DAFTAR
-        toggleLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            isLogin = !isLogin;
-            document.getElementById('formTitle').innerText = isLogin ? "Selamat Datang" : "Daftar Akun";
-            mainBtn.innerText = isLogin ? "Masuk" : "Daftar Akun";
-            toggleLink.innerText = isLogin ? "Daftar" : "Login";
-        });
     </script>
 </body>
 </html>
