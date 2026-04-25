@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body class="bg-gray-900 min-h-screen text-white p-4">
+    <div class="max-w-md mx-auto">
+        <header class="flex items-center mb-4">
+            <a href="admin-list.html" class="text-sm bg-gray-700 px-3 py-1 rounded">← Kembali</a>
+            <h1 class="ml-4 font-bold">QR Scanner</h1>
+        </header>
+
+        <div id="reader" class="rounded-2xl overflow-hidden bg-black"></div>
+
+        <div id="resWrap" class="hidden mt-6 bg-white text-gray-800 p-6 rounded-2xl shadow-2xl">
+            <h2 class="font-bold text-center border-b pb-2 mb-4">HASIL SCAN</h2>
+            <div class="mb-4">
+                <p class="text-xs text-gray-400 uppercase tracking-widest font-bold">Nama</p>
+                <p id="resNama" class="text-lg font-bold">-</p>
+            </div>
+            <div class="mb-6">
+                <p class="text-xs text-gray-400 uppercase tracking-widest font-bold">NIK</p>
+                <p id="resNik" class="text-lg font-mono">-</p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="upStatScan('1')" class="bg-green-500 text-white py-4 rounded-lg font-bold">PAID</button>
+                <button onclick="upStatScan('2')" class="bg-yellow-500 text-white py-4 rounded-lg font-bold">HALF</button>
+                <button onclick="upStatScan('3')" class="bg-red-500 text-white py-4 rounded-lg font-bold">UNPAID</button>
+            </div>
+            <button onclick="resetScan()" class="w-full mt-4 text-gray-400 py-2">Tutup / Scan Lagi</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase-config.js';
+        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        let currentUid = "";
+        const scanner = new Html5Qrcode("reader");
+
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+
+        async function onScanSuccess(decodedText) {
+            currentUid = decodedText;
+            scanner.pause();
+            
+            const snap = await getDoc(doc(db, "users", currentUid));
+            if(snap.exists()) {
+                const data = snap.data();
+                document.getElementById('resNama').innerText = data.nama;
+                document.getElementById('resNik').innerText = data.nik;
+                document.getElementById('resWrap').classList.remove('hidden');
+            } else {
+                alert("QR Tidak Valid / User Tidak Ada!");
+                scanner.resume();
+            }
+        }
+
+        window.upStatScan = async (s) => {
+            await updateDoc(doc(db, "users", currentUid), {
+                status: s,
+                tanggal: new Date().toLocaleString('id-ID')
+            });
+            alert("Berhasil Update!");
+            resetScan();
+        }
+
+        window.resetScan = () => {
+            document.getElementById('resWrap').classList.add('hidden');
+            scanner.resume();
+        }
+    </script>
+</body>
+</html>
