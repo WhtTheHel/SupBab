@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard User</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-4">
+    <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="bg-blue-600 p-4 flex justify-between items-center text-white">
+            <h1 class="font-bold">My QR KTP</h1>
+            <button onclick="logout()" class="text-xs bg-red-500 px-2 py-1 rounded">Logout</button>
+        </div>
+
+        <div class="p-6">
+            <!-- Form Input (Hanya muncul jika data kosong) -->
+            <div id="formSection" class="hidden space-y-4">
+                <p class="text-gray-600 text-sm italic">Silahkan isi sesuai KTP Anda:</p>
+                <input type="text" id="nama" placeholder="Nama Lengkap" class="w-full p-3 border rounded-lg">
+                <input type="number" id="nik" placeholder="NIK (16 Digit)" class="w-full p-3 border rounded-lg">
+                <button id="saveBtn" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold">Simpan & Buat QR</button>
+            </div>
+
+            <!-- Tampilan QR & Status -->
+            <div id="qrSection" class="hidden text-center space-y-4">
+                <div id="qrcode" class="flex justify-center p-4 bg-white border-2 border-dashed rounded-xl"></div>
+                <div>
+                    <h2 id="displayNama" class="text-xl font-bold uppercase text-gray-800"></h2>
+                    <p id="displayNik" class="text-gray-500 tracking-widest"></p>
+                </div>
+
+                <div id="statusBox" class="p-4 rounded-xl text-white font-black text-lg shadow-inner">
+                    STATUS: <span id="statusText">-</span>
+                </div>
+                
+                <p class="text-xs text-gray-400">Terakhir Update: <span id="tglTransaksi">-</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        auth.onAuthStateChanged(user => {
+            if (!user) window.location.href = "index.html";
+            else listenData(user.uid);
+        });
+
+        function listenData(uid) {
+            onSnapshot(doc(db, "users", uid), (snap) => {
+                if (snap.exists() && snap.data().nama) {
+                    const data = snap.data();
+                    document.getElementById('formSection').classList.add('hidden');
+                    document.getElementById('qrSection').classList.remove('hidden');
+                    
+                    document.getElementById('displayNama').innerText = data.nama;
+                    document.getElementById('displayNik').innerText = data.nik;
+                    document.getElementById('tglTransaksi').innerText = data.tanggal;
+
+                    // Buat QR (Isinya UID saja agar aman)
+                    const qrDiv = document.getElementById('qrcode');
+                    qrDiv.innerHTML = "";
+                    new QRCode(qrDiv, { text: uid, width: 200, height: 200 });
+
+                    // Logika Warna Status
+                    const sBox = document.getElementById('statusBox');
+                    const sText = document.getElementById('statusText');
+                    if(data.status === "1") {
+                        sBox.className = "p-4 rounded-xl text-white font-black bg-green-500";
+                        sText.innerText = "SUDAH BAYAR";
+                    } else if(data.status === "2") {
+                        sBox.className = "p-4 rounded-xl text-white font-black bg-yellow-500";
+                        sText.innerText = "SETENGAH BAYAR";
+                    } else {
+                        sBox.className = "p-4 rounded-xl text-white font-black bg-red-500";
+                        sText.innerText = "BELUM BAYAR";
+                    }
+                } else {
+                    document.getElementById('formSection').classList.remove('hidden');
+                }
+            });
+        }
+
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            const user = auth.currentUser;
+            const nama = document.getElementById('nama').value;
+            const nik = document.getElementById('nik').value;
+            if(!nama || !nik) return alert("Lengkapi data!");
+
+            await setDoc(doc(db, "users", user.uid), {
+                nama: nama,
+                nik: nik,
+                status: "3",
+                tanggal: new Date().toLocaleString('id-ID')
+            }, { merge: true });
+        });
+
+        window.logout = () => auth.signOut();
+    </script>
+</body>
+</html>
